@@ -1,16 +1,23 @@
 use crate::Neuron;
 use rand::RngCore;
 
-pub(crate) struct LayerTopology {
-    pub(crate) neurons: usize,
-}
-
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub(crate) struct Layer {
-    neurons: Vec<Neuron>,
+    pub(crate) neurons: Vec<Neuron>,
 }
 
 impl Layer {
+    pub(crate) fn new(neurons: Vec<Neuron>) -> Self {
+        assert!(!neurons.is_empty());
+
+        assert!(
+            neurons
+                .iter()
+                .all(|neuron| neuron.weights.len() == neurons[0].weights.len())
+        );
+
+        Self { neurons }
+    }
     pub(crate) fn random(rng: &mut dyn RngCore, input_size: usize, output_size: usize) -> Self {
         let neurons = (0..output_size)
             .map(|_| Neuron::random(rng, input_size))
@@ -18,17 +25,16 @@ impl Layer {
         Self { neurons }
     }
 
-    pub(crate) fn propagate(&self, inputs: &[f32]) -> Vec<f32> {
+    pub(crate) fn propagate(&self, inputs: Vec<f32>) -> Vec<f32> {
         self.neurons
             .iter()
-            .map(|neuron| neuron.propagate(inputs))
+            .map(|neuron| neuron.propagate(&inputs))
             .collect()
     }
 }
 
 #[cfg(test)]
 mod tests {
-    use approx::assert_relative_eq;
     use rand::SeedableRng;
     use rand_chacha::ChaCha8Rng;
 
@@ -38,16 +44,26 @@ mod tests {
     fn random() {
         let mut rng = ChaCha8Rng::from_seed(Default::default());
         let layer = Layer::random(&mut rng, 4, 3);
+        let expected_biases: Vec<f32> = vec![-0.6255188, -0.5351684, -0.19277143];
 
-        // approx::assert_relative_eq!(layer.bias, -0.6255188);
-        // approx::assert_relative_eq!(
-        //     layer.weights.as_slice(),
-        //     &[0.67383933, 0.81812596, 0.26284885, 0.5238805].as_ref()
-        // );
+        approx::assert_relative_eq!(
+            layer
+                .neurons
+                .iter()
+                .map(|n| n.bias)
+                .collect::<Vec<f32>>()
+                .as_slice(),
+            expected_biases.as_ref()
+        );
     }
 
     #[test]
     fn propagate() {
-        todo!()
+        let mut rng = ChaCha8Rng::from_seed(Default::default());
+        let layer = Layer::random(&mut rng, 4, 3);
+        let inputs = vec![0.2, 0.5, 1.0, 0.8];
+        let expected = &[0.60026526, 0.0, 0.0];
+
+        approx::assert_relative_eq!(layer.propagate(inputs).as_slice(), expected.as_ref());
     }
 }

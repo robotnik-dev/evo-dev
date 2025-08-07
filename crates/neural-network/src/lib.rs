@@ -1,16 +1,36 @@
 mod layer;
+mod layer_topology;
 mod neuron;
 
-pub(crate) use self::{layer::*, neuron::*};
+pub(crate) use self::{layer::*, layer_topology::*, neuron::*};
 use rand::RngCore;
 
-#[derive(Debug)]
-struct Network {
-    layers: Vec<Layer>,
+#[derive(Debug, Clone)]
+pub struct Network {
+    pub(crate) layers: Vec<Layer>,
 }
 
 impl Network {
-    fn random(rng: &mut dyn RngCore, layers: &[LayerTopology]) -> Self {
+    pub(crate) fn new(layers: Vec<Layer>) -> Self {
+        Self { layers }
+    }
+
+    /// Note: the first item in layers is the input size for the actual first layer, so:
+    ///```ignore
+    /// # use neural_network::layer_topology::*;
+    ///
+    /// Layer::random(
+    ///   vec![
+    ///     LayerTopology { neurons: 3},
+    ///     LayerTopology { neurons: 2},
+    ///     LayerTopology { neurons: 1}
+    ///   ]
+    /// );
+    /// ```
+    /// means that the there are two layers:
+    /// - the first with 3 inputs and 2 outputs
+    /// - the second with 2 inputs and 1 output!
+    pub fn random(rng: &mut dyn RngCore, layers: &[LayerTopology]) -> Self {
         assert!(layers.len() > 1);
 
         let layers = layers
@@ -20,9 +40,70 @@ impl Network {
         Self { layers }
     }
 
-    fn propagate(&self, inputs: Vec<f32>) -> Vec<f32> {
+    pub fn propagate(&self, inputs: Vec<f32>) -> Vec<f32> {
         self.layers
             .iter()
-            .fold(inputs, |inputs, layer| layer.propagate(&inputs))
+            .fold(inputs, |inputs, layer| layer.propagate(inputs))
     }
+}
+
+#[cfg(test)]
+mod tests {
+    use rand::SeedableRng;
+    use rand_chacha::ChaCha8Rng;
+
+    use super::*;
+
+    #[test]
+    fn random() {
+        let mut rng = ChaCha8Rng::from_seed(Default::default());
+        let topology = vec![
+            LayerTopology { neurons: 3 },
+            LayerTopology { neurons: 2 },
+            LayerTopology { neurons: 1 },
+        ];
+        let network = Network::random(&mut rng, &topology);
+
+        assert_eq!(network.layers.len(), 2);
+
+        let expected_biases_layer_1: Vec<f32> = vec![-0.6255188, 0.5238805];
+        approx::assert_relative_eq!(
+            network.layers[0]
+                .neurons
+                .iter()
+                .map(|n| n.bias)
+                .collect::<Vec<f32>>()
+                .as_slice(),
+            expected_biases_layer_1.as_ref()
+        );
+
+        let expected_biases_layer_2: Vec<f32> = vec![-0.102499485];
+        approx::assert_relative_eq!(
+            network.layers[1]
+                .neurons
+                .iter()
+                .map(|n| n.bias)
+                .collect::<Vec<f32>>()
+                .as_slice(),
+            expected_biases_layer_2.as_ref()
+        );
+    }
+
+    #[test]
+    fn propagate() {
+        let layers = (
+            Layer::new(vec![
+                Neuron::new(0.0, vec![-0.5, -0.4, -0.3]),
+                Neuron::new(0.0, vec![-0.2, -0.1, 0.0]),
+            ]),
+            Layer::new(vec![Neuron::new(0.0, vec![-0.5, 0.5])]),
+        );
+        let network = Network::new(vec![layers.0.clone(), layers.1.clone()]);
+
+        let actual = network.propagate(vec![0.5, 0.6, 0.7]);
+        let expected = layers.1.propagate(layers.0.propagate(vec![0.5, 0.6, 0.7]));
+
+        approx::assert_relative_eq!(actual.as_slice(), expected.as_slice());
+    }
+
 }

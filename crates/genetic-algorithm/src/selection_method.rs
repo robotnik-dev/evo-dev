@@ -43,6 +43,10 @@ mod tests {
         fn fitness(&self) -> f32 {
             self.fitness
         }
+
+        fn genotype(&self) -> &crate::genotype::Genotype {
+            panic!("not supported for TestIndividuals");
+        }
     }
 
     #[test]

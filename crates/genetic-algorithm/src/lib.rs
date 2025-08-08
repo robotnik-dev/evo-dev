@@ -4,6 +4,8 @@ use selection_method::SelectionMethod;
 
 mod individual;
 mod selection_method;
+mod crossover_method;
+mod genotype;
 
 #[derive(Debug)]
 pub struct GeneticAlgorithm<S> {
@@ -26,8 +28,8 @@ where
 
         (0..population.len())
             .map(|_| {
-                let parent_a = self.selection_method.select(rng, population);
-                let parent_b = self.selection_method.select(rng, population);
+                let parent_a = self.selection_method.select(rng, population).genotype();
+                let parent_b = self.selection_method.select(rng, population).genotype();
                 // crossover
                 // mutation
                 todo!()

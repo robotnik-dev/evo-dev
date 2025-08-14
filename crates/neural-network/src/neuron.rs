@@ -7,6 +7,7 @@ pub(crate) struct Neuron {
 }
 
 impl Neuron {
+    #[allow(dead_code)]
     pub(crate) fn new(bias: f32, weights: Vec<f32>) -> Self {
         assert!(!weights.is_empty());
 
@@ -17,6 +18,15 @@ impl Neuron {
         let weights = (0..input_size)
             .map(|_| rng.random_range(-1.0..=1.0))
             .collect();
+        Self { bias, weights }
+    }
+    pub fn from_weights(input_size: usize, weights: &mut dyn Iterator<Item = f32>) -> Self {
+        let bias = weights.next().expect("got not enough weights");
+
+        let weights = (0..input_size)
+            .map(|_| weights.next().expect("got not enough weights"))
+            .collect();
+
         Self { bias, weights }
     }
 

@@ -2,7 +2,9 @@ mod layer;
 mod layer_topology;
 mod neuron;
 
-pub(crate) use self::{layer::*, layer_topology::*, neuron::*};
+use std::iter::once;
+
+pub use self::{layer::Layer, layer_topology::*};
 use rand::RngCore;
 
 #[derive(Debug, Clone)]
@@ -11,6 +13,7 @@ pub struct Network {
 }
 
 impl Network {
+    #[allow(dead_code)]
     pub(crate) fn new(layers: Vec<Layer>) -> Self {
         Self { layers }
     }
@@ -45,12 +48,39 @@ impl Network {
             .iter()
             .fold(inputs, |inputs, layer| layer.propagate(inputs))
     }
+
+    pub fn weights(&self) -> impl Iterator<Item = f32> + '_ {
+        self.layers
+            .iter()
+            .flat_map(|layer| layer.neurons.iter())
+            .flat_map(|neuron| once(&neuron.bias).chain(&neuron.weights))
+            .copied()
+    }
+
+    pub fn from_weights(layers: &[LayerTopology], weights: impl IntoIterator<Item = f32>) -> Self {
+        assert!(layers.len() > 1);
+
+        let mut weights = weights.into_iter();
+
+        let layers = layers
+            .windows(2)
+            .map(|layers| Layer::from_weights(layers[0].neurons, layers[1].neurons, &mut weights))
+            .collect();
+
+        if weights.next().is_some() {
+            panic!("got too many weights");
+        }
+
+        Self { layers }
+    }
 }
 
 #[cfg(test)]
 mod tests {
     use rand::SeedableRng;
     use rand_chacha::ChaCha8Rng;
+
+    use crate::neuron::Neuron;
 
     use super::*;
 
@@ -105,5 +135,4 @@ mod tests {
 
         approx::assert_relative_eq!(actual.as_slice(), expected.as_slice());
     }
-
 }

@@ -1,0 +1,13 @@
+[package]
+name = "simulation"
+version = "0.1.0"
+edition = "2024"
+
+[dependencies]
+nalgebra = { version = "0.34.0", features = ["rand-no-std"] }
+rand = "0.9.2"
+neural-network = { path = "../neural-network" }
+genetic-algorithm = { path = "../genetic-algorithm" }
+
+[dev-dependencies]
+test-case = "3.3.1"

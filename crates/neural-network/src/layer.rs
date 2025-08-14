@@ -1,12 +1,14 @@
-use crate::Neuron;
 use rand::RngCore;
 
+use crate::neuron::Neuron;
+
 #[derive(Debug, Clone)]
-pub(crate) struct Layer {
+pub struct Layer {
     pub(crate) neurons: Vec<Neuron>,
 }
 
 impl Layer {
+    #[allow(dead_code)]
     pub(crate) fn new(neurons: Vec<Neuron>) -> Self {
         assert!(!neurons.is_empty());
 
@@ -22,6 +24,18 @@ impl Layer {
         let neurons = (0..output_size)
             .map(|_| Neuron::random(rng, input_size))
             .collect();
+        Self { neurons }
+    }
+
+    pub fn from_weights(
+        input_size: usize,
+        output_size: usize,
+        weights: &mut dyn Iterator<Item = f32>,
+    ) -> Self {
+        let neurons = (0..output_size)
+            .map(|_| Neuron::from_weights(input_size, weights))
+            .collect();
+
         Self { neurons }
     }
 

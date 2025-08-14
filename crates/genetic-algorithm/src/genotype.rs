@@ -2,12 +2,16 @@ use std::ops::Index;
 
 #[derive(Debug, Clone)]
 pub struct Genotype {
-    genes: Vec<f32>,
+    pub(crate) genes: Vec<f32>,
 }
 
 impl Genotype {
     pub fn len(&self) -> usize {
         self.genes.len()
+    }
+
+    pub fn is_empty(&self) -> bool {
+        self.genes.is_empty()
     }
 
     pub fn iter(&self) -> impl Iterator<Item = &f32> {
@@ -16,6 +20,12 @@ impl Genotype {
 
     pub fn iter_mut(&mut self) -> impl Iterator<Item = &mut f32> {
         self.genes.iter_mut()
+    }
+}
+
+impl PartialEq for Genotype {
+    fn eq(&self, other: &Self) -> bool {
+        approx::relative_eq!(self.genes.as_slice(), other.genes.as_slice())
     }
 }
 
